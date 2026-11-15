@@ -88,6 +88,10 @@ pub fn start() {
                     if let Some(code) = query_param("lang") {
                         app.ui.language = code;
                     }
+                    // `?chrome=notitlebar`: Ráfaga pone el nombre y Nuevo/Abrir en su barra y oculta la de la app.
+                    if query_param("chrome").as_deref() == Some("notitlebar") {
+                        wordcraft_ui_egui::chrome::set_title_bar_hidden(true);
+                    }
                     // Ráfaga también pasa sus colores (`?theme=dark|light&ac=#rrggbb&…`): la app los usa en vez de los suyos.
                     if let Some(mode) = query_param("theme") {
                         use wordcraft_ui_egui::theme::{self, Appearance, HostTheme};

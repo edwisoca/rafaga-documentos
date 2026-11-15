@@ -303,9 +303,23 @@ pub(crate) fn title_drag_rect(ctx: &egui::Context) -> Option<Rect> {
     ctx.data(|d| d.get_temp::<(Rect, u64)>(key)).filter(|(_, p)| *p == pass).map(|(r, _)| r)
 }
 
+/// Ráfaga: el anfitrión muestra el nombre y los botones de archivo en su propia barra y pide ocultar la de la app.
+static TITLE_BAR_HIDDEN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn set_title_bar_hidden(hidden: bool) {
+    TITLE_BAR_HIDDEN.store(hidden, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn title_bar_hidden() -> bool {
+    TITLE_BAR_HIDDEN.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// Draws the title bar with window dragging, AutoSave, quick access, account, community and search
 /// controls, and the centred clickable document title.
 pub fn title_bar(app: &mut WordApp, ui: &mut Ui) {
+    if title_bar_hidden() {
+        return;
+    }
     let t = Tokens::get(ui.ctx());
     // macOS: shorter, so the system's traffic lights are centred in it; the tallest controls
     // shrink to keep a margin above and below them.
