@@ -153,10 +153,12 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
         tabs.insert((*at).min(tabs.len()), (name.clone(), false));
     }
     // Tab strip.
+    let bar_t = crate::theme::strip_tokens(t);
     egui::Panel::top("tabs")
         .exact_size(30.0)
-        .frame(egui::Frame::NONE.fill(t.tab_strip).inner_margin(egui::Margin { left: 8, right: 10, top: 0, bottom: 0 }))
+        .frame(egui::Frame::NONE.fill(bar_t.tab_strip).inner_margin(egui::Margin { left: 8, right: 10, top: 0, bottom: 0 }))
         .show(ui, |ui| {
+            let t = bar_t;
             crate::rtl::root(ui, |ui| {
                 ui.horizontal_centered(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 0.0);

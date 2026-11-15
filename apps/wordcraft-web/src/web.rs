@@ -116,6 +116,9 @@ pub fn start() {
                             muted: col("mu"),
                             hover: col("hv"),
                             soft: col("as"),
+                            bar_bg: col("tb"),
+                            bar_fg: col("tf"),
+                            bar_hi: col("tu"),
                         });
                         app.ui.theme = if dark { Appearance::Dark } else { Appearance::Light };
                     }
