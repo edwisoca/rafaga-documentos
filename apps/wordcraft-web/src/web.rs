@@ -88,6 +88,33 @@ pub fn start() {
                     if let Some(code) = query_param("lang") {
                         app.ui.language = code;
                     }
+                    // Ráfaga también pasa sus colores (`?theme=dark|light&ac=#rrggbb&…`): la app los usa en vez de los suyos.
+                    if let Some(mode) = query_param("theme") {
+                        use wordcraft_ui_egui::theme::{self, Appearance, HostTheme};
+                        let col = |k: &str| {
+                            let v = query_param(k)?;
+                            let v = v.trim().trim_start_matches('#');
+                            if v.len() != 6 {
+                                return None;
+                            }
+                            let n = u32::from_str_radix(v, 16).ok()?;
+                            Some(egui::Color32::from_rgb((n >> 16) as u8, (n >> 8) as u8, n as u8))
+                        };
+                        let dark = mode == "dark";
+                        theme::set_host_theme(HostTheme {
+                            dark,
+                            accent: col("ac"),
+                            on_accent: col("acf"),
+                            surface: col("sf"),
+                            bg: col("bg"),
+                            line: col("ln"),
+                            text: col("fg"),
+                            muted: col("mu"),
+                            hover: col("hv"),
+                            soft: col("as"),
+                        });
+                        app.ui.theme = if dark { Appearance::Dark } else { Appearance::Light };
+                    }
                     // A region chosen in File › Options replaces the browser's for the first blank
                     // document too (#838).
                     if !sample && app.session.prefs.region.is_some() {

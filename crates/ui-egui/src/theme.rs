@@ -301,7 +301,7 @@ pub struct Tokens {
 }
 
 impl Tokens {
-    pub fn light() -> Self {
+    fn light_base() -> Self {
         Tokens {
             dark: false,
             title_bar: Color32::from_rgb(0xF0, 0xF0, 0xF0),
@@ -366,7 +366,7 @@ impl Tokens {
             on_close: Color32::WHITE,
         }
     }
-    pub fn dark() -> Self {
+    fn dark_base() -> Self {
         Tokens {
             dark: true,
             title_bar: Color32::from_rgb(0x1F, 0x1F, 0x1F),
@@ -434,9 +434,102 @@ impl Tokens {
             on_close: Color32::WHITE,
         }
     }
+    pub fn light() -> Self {
+        host_override(Tokens::light_base())
+    }
+    pub fn dark() -> Self {
+        host_override(Tokens::dark_base())
+    }
     pub fn get(ctx: &egui::Context) -> Tokens {
         if ctx.global_style().visuals.dark_mode { Tokens::dark() } else { Tokens::light() }
     }
+}
+
+/// Ráfaga: colores que el anfitrión (la ventana de Ráfaga) pasa a la aplicación incrustada.
+/// Cada campo es opcional; lo que no llega se queda con la paleta propia de la aplicación.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct HostTheme {
+    pub dark: bool,
+    pub accent: Option<Color32>,
+    pub on_accent: Option<Color32>,
+    pub surface: Option<Color32>,
+    pub bg: Option<Color32>,
+    pub line: Option<Color32>,
+    pub text: Option<Color32>,
+    pub muted: Option<Color32>,
+    pub hover: Option<Color32>,
+    pub soft: Option<Color32>,
+}
+
+static HOST_THEME: std::sync::OnceLock<HostTheme> = std::sync::OnceLock::new();
+
+/// Fija los colores del anfitrión; solo se puede una vez, al arrancar.
+pub fn set_host_theme(h: HostTheme) {
+    let _ = HOST_THEME.set(h);
+}
+
+/// `true`/`false` si el anfitrión eligió claro u oscuro; `None` si no hay anfitrión.
+pub fn host_dark() -> Option<bool> {
+    HOST_THEME.get().map(|h| h.dark)
+}
+
+/// Mezcla `a` con `b` (`t` de 0 a 1).
+fn mix(a: Color32, b: Color32, t: f32) -> Color32 {
+    let m = |x: u8, y: u8| (x as f32 + (y as f32 - x as f32) * t).round() as u8;
+    Color32::from_rgb(m(a.r(), b.r()), m(a.g(), b.g()), m(a.b(), b.b()))
+}
+
+fn host_override(mut t: Tokens) -> Tokens {
+    let Some(h) = HOST_THEME.get() else { return t };
+    if h.dark != t.dark {
+        return t;
+    }
+    if let Some(sf) = h.surface {
+        t.ribbon = sf;
+        t.panel = sf;
+        t.menu = sf;
+        t.input = sf;
+        t.status_bar = sf;
+        t.balloon = if t.dark { sf } else { Color32::WHITE };
+    }
+    if let Some(bg) = h.bg {
+        t.title_bar = bg;
+        t.tab_strip = bg;
+        t.canvas = mix(bg, if t.dark { Color32::BLACK } else { Color32::BLACK }, if t.dark { 0.25 } else { 0.06 });
+        t.markup_area = bg;
+    }
+    if let Some(l) = h.line {
+        t.border = l;
+        t.markup_edge = l;
+        t.border_strong = mix(l, if t.dark { Color32::WHITE } else { Color32::BLACK }, 0.22);
+    }
+    if let Some(x) = h.text {
+        t.text = x;
+        t.icon = mix(x, h.surface.unwrap_or(t.ribbon), 0.12);
+    }
+    if let Some(m) = h.muted {
+        t.text_dim = m;
+        t.group_label = m;
+        t.text_disabled = mix(m, h.surface.unwrap_or(t.ribbon), 0.5);
+    }
+    if let Some(x) = h.hover {
+        t.hover = x;
+        t.pressed = mix(x, h.accent.unwrap_or(t.accent), 0.18);
+    }
+    if let Some(x) = h.soft {
+        t.checked = x;
+    }
+    if let Some(a) = h.accent {
+        t.accent = a;
+        t.accent_text = a;
+        t.nav = if t.dark { mix(a, Color32::BLACK, 0.6) } else { a };
+        let sel = a.to_array();
+        t.selection = Color32::from_rgba_unmultiplied(sel[0], sel[1], sel[2], if t.dark { 0x55 } else { 0x48 });
+    }
+    if let Some(o) = h.on_accent {
+        t.on_accent = o;
+    }
+    t
 }
 
 /// Install the UI fonts (Inter, JetBrains Mono) and the craft-fonts CJK interface faces if built
