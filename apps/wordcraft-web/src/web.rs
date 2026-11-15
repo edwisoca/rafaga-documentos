@@ -84,6 +84,10 @@ pub fn start() {
                     // Preferences from an earlier visit (#2132), as the desktop app reads `ui.json`.
                     let stored = stored_prefs();
                     crate::prefs::restore(&mut app, stored.as_deref());
+                    // Ráfaga elige el idioma de todas sus aplicaciones: `?lang=es|en` manda sobre lo guardado.
+                    if let Some(code) = query_param("lang") {
+                        app.ui.language = code;
+                    }
                     // A region chosen in File › Options replaces the browser's for the first blank
                     // document too (#838).
                     if !sample && app.session.prefs.region.is_some() {
